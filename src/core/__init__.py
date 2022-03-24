@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 import asyncio
+from asyncio.log import logger
 import aiohttp
 from aiohttp import ClientSession
 from aiohttp.client import _WSRequestContextManager
@@ -7,6 +8,8 @@ from .config import CREDS, Credentials, Redis
 from utils.enums import Action, Status
 import json
 import aioredis
+import logging
+logger = logging.getLogger(__name__)
 
 
 class AbstractBasePublisher(ABC):
@@ -49,7 +52,7 @@ class BasePublisher(AbstractPublisher):
             "key": f"{CREDS.KEY}",
             "secret": f"{CREDS.SECRET}",
         }
-        # print(auth_data)
+        logger.info("authenticating")
         await self.ws.send_str(json.dumps(auth_data))
     
     async def switch(self,key, obj):
@@ -57,6 +60,7 @@ class BasePublisher(AbstractPublisher):
     
     async def main(self):
         if not self.symbols:
+            logger.critical("no symbols to subscribe")
             raise NotImplemented("Symbols must be set")
         self.redis = aioredis.from_url(self.redisconfig.full_url)
         self.session = self.session()
@@ -78,15 +82,18 @@ class BasePublisher(AbstractPublisher):
                 case Status.ERROR.value:
                     print("error connection")
                 case Status.SUBSCRIBTION.value:
-                    print("subscription accepted")
+                    logger.info("subscription accepted")
                     # asyncio.ensure_future(self.test_publish())
                 case Status.QUOTES.value:
                     await self.publish(messages)
-                case None:
-                    print("Message Type not Found")
+                case _:
+                    logger.warning("unknown message")
                     
                     
-        except IndexError:
+        except IndexError as e:
+            logger.critical("schema invalid \n {} \n".format(msg))
+            logger.critical(e.with_traceback())
+            
             raise IndexError("invalid payload schema")
         
     async def success_handler(self, msg:dict):
@@ -97,6 +104,7 @@ class BasePublisher(AbstractPublisher):
                     await self.authenticate()
             case Action.AUTHENTICATED.value:
                 self.authenticated = True
+                logger.info("authenticated")
                 await self.subscribe()
                 
     async def subscribe(self):

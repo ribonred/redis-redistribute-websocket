@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import Optional
 from dotenv import load_dotenv
 import os
+from utils import logs
 
 load_dotenv()
 
