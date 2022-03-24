@@ -32,5 +32,15 @@ class RedisConfig:
         self.full_url = f"redis://{self.url}:{self.port}"
 
 
+@dataclass
+class Settings:
+    demo: bool = False
+
+    def __init__(self, demo: bool):
+        if demo:
+            self.demo = demo
+
+
 CREDS = Credentials(SECRET=os.getenv("BROKER_SECRET"), KEY=os.getenv("BROKER_KEY"))
 Redis = RedisConfig(url=os.getenv("REDIS_URL"), port=os.getenv("REDIS_PORT"))
+CONF = Settings(demo=os.getenv("DEMO"))

@@ -3,7 +3,7 @@ import asyncio
 import aiohttp
 from aiohttp import ClientSession
 from aiohttp.client import _WSRequestContextManager
-from utils.credentials import CREDS, Credentials, Redis
+from .config import CREDS, Credentials, Redis
 from utils.enums import Action, Status
 import json
 import aioredis

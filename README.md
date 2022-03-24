@@ -78,6 +78,9 @@ Backend will manage the request from apps/user/consumer. if consumer or other ba
     ROUTE --> REDIS_SERVER
     REDIS_SERVER --> ROUTE
     ROUTE --> STREAM
-    STREAM --> CONSUMER
+    STREAM --> FRONTEND
+    STREAM --> MOBILE
+    FRONTEND --> CONSUMER
+    MOBILE --> CONSUMER
 
 ```
