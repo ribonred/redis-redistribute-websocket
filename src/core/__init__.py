@@ -32,6 +32,7 @@ class BasePublisher(AbstractPublisher):
     credentials = CREDS
     ws :_WSRequestContextManager
     publisher :aioredis.client.PubSub
+    group_prefix="asgi__group__"
 
     def __init__(self, baseurl: str, symbols: list[str]=[]):
         self.baseurl = baseurl
@@ -78,6 +79,7 @@ class BasePublisher(AbstractPublisher):
                     print("error connection")
                 case Status.SUBSCRIBTION.value:
                     print("subscription accepted")
+                    # asyncio.ensure_future(self.test_publish())
                 case Status.QUOTES.value:
                     await self.publish(messages)
                 case None:
@@ -102,8 +104,18 @@ class BasePublisher(AbstractPublisher):
         await self.ws.send_str(json.dumps(subscribe_data))
     
     async def publish(self, msg:dict):
-        print(msg)
-        asyncio.ensure_future(self.redis.publish(msg["S"],json.dumps(msg)))
+        msg["type"] = "market_event"
+        msg["channels"] = "{}{}".format(self.group_prefix,msg["S"])
+        asyncio.ensure_future(self.redis.publish(msg["channels"],json.dumps(msg)))
+    
+    async def test_publish(self):
+        count = 0
+        while True:
+            data_to= {"new":f"{count}","type":"market_event"}
+            print("sending")
+            await asyncio.sleep(3)
+            await self.redis.publish("asgi__group__DOCU",json.dumps(data_to))
+            count+=1
     
     
     
