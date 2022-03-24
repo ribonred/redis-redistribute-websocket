@@ -102,6 +102,7 @@ class BasePublisher(AbstractPublisher):
         await self.ws.send_str(json.dumps(subscribe_data))
     
     async def publish(self, msg:dict):
+        print(msg)
         asyncio.ensure_future(self.redis.publish(msg["S"],json.dumps(msg)))
     
     
