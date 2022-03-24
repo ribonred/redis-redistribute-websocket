@@ -76,7 +76,7 @@ class BasePublisher(AbstractPublisher):
                     await self.success_handler(messages)
                 case Status.ERROR.value:
                     print("error connection")
-                case Status.SUBSCRIBTION:
+                case Status.SUBSCRIBTION.value:
                     print("subscription accepted")
                 case Status.QUOTES.value:
                     await self.publish(messages)
