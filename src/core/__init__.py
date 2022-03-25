@@ -80,7 +80,8 @@ class BasePublisher(AbstractPublisher):
                     self.ws = ws
                     await self.success_handler(messages)
                 case Status.ERROR.value:
-                    print("error connection")
+                    logger.critical("connection error")
+                    logger.critical(msg)
                 case Status.SUBSCRIBTION.value:
                     logger.info("subscription accepted")
                     # asyncio.ensure_future(self.test_publish())

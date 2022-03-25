@@ -3,7 +3,7 @@ import asyncio
 
 
 if __name__ == "__main__":
-    pubs = Publisher.get_iex_publisher(demo=config.CONF.demo)
+    pubs = Publisher.get_sip_publisher(demo=config.CONF.demo)
     pubs.assign_symbols(["UPS", "CF", "EBAY", "DOCU", "VRSN"])
     try:
         asyncio.run(pubs.main())
