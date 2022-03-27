@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import Optional
 from dotenv import load_dotenv
 import os
+# initialize logger
 from utils import logs
 
 load_dotenv()
@@ -38,10 +39,10 @@ class Settings:
     demo: bool = False
 
     def __init__(self, demo: bool):
-        if demo:
-            self.demo = demo
+        if isinstance(demo, str):
+            self.demo = True if demo == "True" else False
 
 
 CREDS = Credentials(SECRET=os.getenv("BROKER_SECRET"), KEY=os.getenv("BROKER_KEY"))
-Redis = RedisConfig(url=os.getenv("REDIS_URL"), port=os.getenv("REDIS_PORT"))
+REDIS = RedisConfig(url=os.getenv("REDIS_URL"), port=os.getenv("REDIS_PORT"))
 CONF = Settings(demo=os.getenv("DEMO"))

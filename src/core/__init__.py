@@ -4,11 +4,13 @@ from asyncio.log import logger
 import aiohttp
 from aiohttp import ClientSession
 from aiohttp.client import _WSRequestContextManager
-from .config import CREDS, Credentials, Redis
+from .config import CREDS, Credentials, REDIS
 from utils.enums import Action, Status
 import json
 import aioredis
 import logging
+from tqdm.asyncio import tqdm
+
 logger = logging.getLogger(__name__)
 
 
@@ -32,16 +34,27 @@ class AbstractPublisher(ABC):
     authenticated: bool = False
 
 class BasePublisher(AbstractPublisher):
+    """_summary_
+
+    Args:
+        AbstractPublisher (_type_): Base publisher to listen stream market
+
+    Raises:
+        NotImplemented: this class should have list of symbols to subscribe
+        IndexError: this will raises whenever schema of websocket response changes
+
+    Returns:
+        _type_: there is no return value
+    """
     credentials = CREDS
+    redisconfig = REDIS
     ws :_WSRequestContextManager
-    publisher :aioredis.client.PubSub
     group_prefix="asgi__group__"
 
     def __init__(self, baseurl: str, symbols: list[str]=[]):
         self.baseurl = baseurl
         self.symbols = symbols
         self.session = ClientSession
-        self.redisconfig = Redis
     
     def assign_symbols(self, symbols:list[str]):
         self.symbols = symbols
@@ -53,6 +66,8 @@ class BasePublisher(AbstractPublisher):
             "secret": f"{CREDS.SECRET}",
         }
         logger.info("authenticating")
+        logger.info(self.baseurl)
+        logger.debug(auth_data)
         await self.ws.send_str(json.dumps(auth_data))
     
     async def switch(self,key, obj):
@@ -62,10 +77,14 @@ class BasePublisher(AbstractPublisher):
         if not self.symbols:
             logger.critical("no symbols to subscribe")
             raise NotImplemented("Symbols must be set")
+        # make redis connection
         self.redis = aioredis.from_url(self.redisconfig.full_url)
+        # invoking sessions for websocket
         self.session = self.session()
         async with self.session.ws_connect(self.baseurl) as ws:
-               async for msg in ws:
+               async for msg in tqdm(ws):
+                   # please notice
+                   # match syntax (only in python >= 3.10)
                     match msg.type:
                         case (aiohttp.WSMsgType.CLOSED, aiohttp.WSMsgType.ERROR):
                             break
@@ -80,20 +99,29 @@ class BasePublisher(AbstractPublisher):
                     self.ws = ws
                     await self.success_handler(messages)
                 case Status.ERROR.value:
-                    logger.critical("connection error")
-                    logger.critical(msg)
+                    # if error occurs, websocket will close automatically by the server
+                    # TODO: recreate connection handshake
+                    logger.error("connection error")
+                    logger.error(msg)
                 case Status.SUBSCRIBTION.value:
+                    # indicate if subscription is successful
                     logger.info("subscription accepted")
+                    logger.info("Listen incoming data ...")
                     # asyncio.ensure_future(self.test_publish())
                 case Status.QUOTES.value:
+                    # publish to redis
                     await self.publish(messages)
                 case _:
-                    logger.warning("unknown message")
+                    logger.error("unknown message")
+                    logger.error(msg)
+                    
                     
                     
         except IndexError as e:
+            # exit connection
+            # TODO: create a report notification
             logger.critical("schema invalid \n {} \n".format(msg))
-            logger.critical(e.with_traceback())
+            await self.session.close()
             
             raise IndexError("invalid payload schema")
         
@@ -109,13 +137,20 @@ class BasePublisher(AbstractPublisher):
                 await self.subscribe()
                 
     async def subscribe(self):
+        """_summary_
+        for now only quotes are supported
+        we will add more as is needed
+        """
         subscribe_data = {"action": "subscribe", "quotes": self.symbols}
         await self.ws.send_str(json.dumps(subscribe_data))
     
     async def publish(self, msg:dict):
         msg["type"] = "market_event"
         msg["channels"] = "{}{}".format(self.group_prefix,msg["S"])
+        # ensure_future is used to ensure that the task is executed in the event loop
+        # this wrapper function is non-blocking for couroutine
         asyncio.ensure_future(self.redis.publish(msg["channels"],json.dumps(msg)))
+        
     
     async def test_publish(self):
         count = 0
@@ -141,6 +176,17 @@ class SipPublisher(BasePublisher):
 
 
 class Publisher(AbstractBasePublisher):
+    """_summary_
+
+    Args:
+        AbstractBasePublisher (_type_): this is wrapper of publisher
+        demo (bool): this is to choose using sandbox or production
+        api_ver (str): this is to choose using api version
+        protocol (str): this is to choose using protocol we can use https (SSE) / wss
+
+    Returns:
+        _type_: publisher object
+    """
     demo_base_url = "stream.data.sandbox.alpaca.markets"
     base_url = "stream.data.alpaca.markets"
     api_ver = "v2"
@@ -148,7 +194,7 @@ class Publisher(AbstractBasePublisher):
     source = ["iex", "sip"]
 
     @classmethod
-    def get_iex_publisher(cls, demo=False, api_ver=None, protocol=None):
+    def get_iex_publisher(cls, demo:bool=False, api_ver:str|None=None, protocol:str|None=None):
         cls.protocol = protocol or cls.protocol
         cls.api_ver = api_ver or cls.api_ver
         if demo:
@@ -160,7 +206,7 @@ class Publisher(AbstractBasePublisher):
         )
 
     @classmethod
-    def get_sip_publisher(cls, demo=False, api_ver=None, protocol=None):
+    def get_sip_publisher(cls, demo:bool=False, api_ver:str|None=None, protocol:str|None=None):
         cls.protocol = protocol or cls.protocol
         cls.api_ver = api_ver or cls.api_ver
         if demo:
