@@ -4,13 +4,14 @@ from asyncio.log import logger
 import aiohttp
 from aiohttp import ClientSession
 from aiohttp.client import _WSRequestContextManager
-from .config import CREDS, Credentials, REDIS
+from .config import CREDS, Credentials, REDIS, RPC_URL
+from xmlrpc.client import ServerProxy
 from utils.enums import Action, Status
 import json
 import aioredis
 import logging
 from tqdm.asyncio import tqdm
-
+ 
 logger = logging.getLogger(__name__)
 
 
@@ -58,6 +59,17 @@ class BasePublisher(AbstractPublisher):
     
     def assign_symbols(self, symbols:list[str]):
         self.symbols = symbols
+    
+    def assign_symbols_from_rpc(self):
+        # TODO: multicurrency later
+        logger.info(
+            "assigning symbols from rpc server {}".format(RPC_URL)
+        )
+        try:
+            server: ServerProxy = ServerProxy(RPC_URL)
+            self.symbols = server.get_listed_ticker("usd")
+        except Exception:
+            return self.assign_symbols(["UPS", "CF", "VRSSEEN"])
 
     async def authenticate(self):
         auth_data = {

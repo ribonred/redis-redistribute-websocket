@@ -44,5 +44,6 @@ class Settings:
 
 
 CREDS = Credentials(SECRET=os.getenv("BROKER_SECRET"), KEY=os.getenv("BROKER_KEY"))
-REDIS = RedisConfig(url=os.getenv("REDIS_URL"), port=os.getenv("REDIS_PORT"))
+REDIS = RedisConfig(url=os.getenv("REDIS_HOST"), port=os.getenv("REDIS_PORT"))
 CONF = Settings(demo=os.getenv("DEMO"))
+RPC_URL = os.getenv("RPC_URL")
