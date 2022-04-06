@@ -69,7 +69,7 @@ class BasePublisher(AbstractPublisher):
             server: ServerProxy = ServerProxy(RPC_URL)
             self.symbols = server.get_listed_ticker("usd")
         except Exception:
-            return self.assign_symbols(["UPS", "CF", "VRSSEEN"])
+            return self.assign_symbols(["UPS", "CF"])
 
     async def authenticate(self):
         auth_data = {
@@ -91,6 +91,8 @@ class BasePublisher(AbstractPublisher):
             raise NotImplemented("Symbols must be set")
         # make redis connection
         self.redis = aioredis.from_url(self.redisconfig.full_url)
+        await self.redis.set("streaming_ticker", str(self.symbols))
+        logger.info(f"stream ticker set to {len(self.symbols)} symbols")
         # invoking sessions for websocket
         self.session = self.session()
         async with self.session.ws_connect(self.baseurl) as ws:
@@ -101,7 +103,7 @@ class BasePublisher(AbstractPublisher):
                         case (aiohttp.WSMsgType.CLOSED, aiohttp.WSMsgType.ERROR):
                             break
                         case (aiohttp.WSMsgType.TEXT):
-                            await self.handle_message(json.loads(msg.data),ws)
+                            asyncio.ensure_future(self.handle_message(json.loads(msg.data),ws))
     
     async def handle_message(self, msg:list[dict],ws):
         try:
@@ -123,7 +125,9 @@ class BasePublisher(AbstractPublisher):
                 case Status.QUOTES.value:
                     # publish to redis
                     await self.publish(messages)
-                case _:
+                case Status.DAYS.value:
+                    logger.info(messages)
+                case None:
                     logger.error("unknown message")
                     logger.error(msg)
                     
@@ -153,7 +157,7 @@ class BasePublisher(AbstractPublisher):
         for now only quotes are supported
         we will add more as is needed
         """
-        subscribe_data = {"action": "subscribe", "quotes": self.symbols}
+        subscribe_data = {"action": "subscribe", "quotes": self.symbols,"bars":self.symbols}
         await self.ws.send_str(json.dumps(subscribe_data))
     
     async def publish(self, msg:dict):
