@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
 import asyncio
-from asyncio.log import logger
 import aiohttp
 from aiohttp import ClientSession
 from aiohttp.client import _WSRequestContextManager
