@@ -10,7 +10,6 @@ from utils.enums import Action, Status
 import json
 import aioredis
 import logging
-from tqdm.asyncio import tqdm
  
 logger = logging.getLogger(__name__)
 
@@ -96,7 +95,7 @@ class BasePublisher(AbstractPublisher):
         # invoking sessions for websocket
         self.session = self.session()
         async with self.session.ws_connect(self.baseurl) as ws:
-               async for msg in tqdm(ws):
+               async for msg in ws:
                    # please notice
                    # match syntax (only in python >= 3.10)
                     match msg.type:
