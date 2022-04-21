@@ -101,7 +101,7 @@ class BasePublisher(AbstractPublisher):
                         case (aiohttp.WSMsgType.CLOSED, aiohttp.WSMsgType.ERROR):
                             break
                         case (aiohttp.WSMsgType.TEXT):
-                            asyncio.ensure_future(self.handle_message(json.loads(msg.data),ws))
+                            asyncio.create_task(self.handle_message(json.loads(msg.data),ws))
     
     async def handle_message(self, msg:list[dict],ws):
         try:
@@ -155,7 +155,7 @@ class BasePublisher(AbstractPublisher):
         for now only quotes are supported
         we will add more as is needed
         """
-        subscribe_data = {"action": "subscribe", "quotes": self.symbols,"bars":self.symbols}
+        subscribe_data = {"action": "subscribe", "trades": self.symbols,"bars":self.symbols}
         await self.ws.send_str(json.dumps(subscribe_data))
     
     async def publish(self, msg:dict):
@@ -163,7 +163,7 @@ class BasePublisher(AbstractPublisher):
         msg["channels"] = "{}{}".format(self.group_prefix,msg["S"])
         # ensure_future is used to ensure that the task is executed in the event loop
         # this wrapper function is non-blocking for couroutine
-        asyncio.ensure_future(self.redis.publish(msg["channels"],json.dumps(msg)))
+        await self.redis.publish(msg["channels"],json.dumps(msg))
         
     
     async def test_publish(self):
