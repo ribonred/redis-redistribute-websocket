@@ -10,6 +10,7 @@ class Status(Enum):
     ERROR = "error"
     SUBSCRIBTION = "subscription"
     QUOTES = "q"
+    TRADES = "t"
     DAYS = "d"
     MINUTES = "b"
 

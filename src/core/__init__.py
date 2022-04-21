@@ -120,7 +120,7 @@ class BasePublisher(AbstractPublisher):
                     logger.info("subscription accepted")
                     logger.info("Listen incoming data ...")
                     # asyncio.ensure_future(self.test_publish())
-                case Status.QUOTES.value:
+                case Status.TRADES.value:
                     # publish to redis
                     await self.publish(messages)
                 case Status.DAYS.value:
