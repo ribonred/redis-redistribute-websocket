@@ -1,0 +1,57 @@
+[package]
+name = "redisrust"
+version = "0.1.2"
+readme = "README.md"
+keywords = ["fast", "redis"]
+author = "Rede Akbar Wijaya"
+include = ["Cargo.toml", "README.md", "src/*", "pyproject.toml"]
+edition = "2021"
+
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+name = "redisrust"
+crate-type = ["cdylib"]
+
+[package.metadata.maturin]
+requires-python = ">=3.8"
+classifier = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: MacOS",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python",
+    "Programming Language :: Rust",
+    "Typing :: Typed",
+]
+[dependencies]
+pyo3 = { git = "https://github.com/PyO3/pyo3", default-features = false, features = [
+    "macros",
+    "extension-module",
+    "nightly"
+] }
+tokio = { version = "1", default-features = false, features = [
+    "rt-multi-thread",
+    "parking_lot",
+] }
+redis = { git = "https://github.com/mitsuhiko/redis-rs", default-features = false, features = [
+    "tokio-comp"
+] }
+futures-util = { version = "0.3", default-features = false }
+parking_lot = { version = "0.12.0", default-features = false, features = [
+    "nightly"
+]}
+
+[profile.release]
+codegen-units = 1
+debug = false
+incremental = false
+lto = true
+opt-level = 3
+panic = "abort"

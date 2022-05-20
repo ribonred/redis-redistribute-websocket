@@ -15,3 +15,15 @@ db.sqlite3
 Pipfile.lock
 Pipfile
 dist/
+*.patch
+rust/perf.*
+__pycache__
+*.pyc
+rust/target/
+.pytest_cache
+rust/benchmark_*.svg
+.coverage
+.benchmarks
+.mypy_cache
+vendor
+build

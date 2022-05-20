@@ -9,6 +9,7 @@ from utils.enums import Action, Status
 import json
 import aioredis
 import logging
+import redisrust
  
 logger = logging.getLogger(__name__)
 
@@ -88,8 +89,9 @@ class BasePublisher(AbstractPublisher):
             logger.critical("no symbols to subscribe")
             raise NotImplemented("Symbols must be set")
         # make redis connection
-        self.redis = aioredis.from_url(self.redisconfig.full_url)
-        await self.redis.set("streaming_ticker", str(self.symbols))
+        # self.redis = aioredis.from_url(self.redisconfig.full_url)
+        self.redis = await redisrust.create_pool(self.redisconfig.full_url, 10, 10)
+        await self.redis.execute("SET","streaming_ticker", str(self.symbols))
         logger.info(f"stream ticker set to {len(self.symbols)} symbols")
         # invoking sessions for websocket
         self.session = self.session()
